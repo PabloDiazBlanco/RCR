@@ -3,28 +3,28 @@
 %% Lógica principal del puzzle Yin Yang
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% --- Dominio: filas y columnas ---
+row(R) :- gridsize(N), R = 1..N.
+col(C) :- gridsize(N), C = 1..N.
+
 %% -------------------------------------------------------------------
 %% 1. Representación de color
 %% -------------------------------------------------------------------
-%% Suponemos que en domXX.lp vendrán hechos como:
+%% Se asume que en el dominio (domXX.lp) vienen hechos:
 %%   gridsize(N).
 %%   cell(R,C,fixedBlack) / cell(R,C,fixedWhite) / cell(R,C,free).
-%%   (Estos describen el tablero y celdas fijas o libres).
 
-%% Para las celdas libres, elegimos color negro o blanco.
+%% Para celdas libres se decide entre negro o blanco.
 { color(R,C,black) ; color(R,C,white) } :- cell(R,C,free).
 
-%% Para celdas fijas, forzamos el color correspondiente.
+%% Para celdas fijas, se fuerza el color.
 color(R,C,black) :- cell(R,C,fixedBlack).
 color(R,C,white) :- cell(R,C,fixedWhite).
 
 %% -------------------------------------------------------------------
-%% 2. Restricción de no 2x2 del mismo color
+%% 2. Restricción: No se permiten bloques 2x2 del mismo color
 %% -------------------------------------------------------------------
-%% Evitamos que haya un bloque 2x2 totalmente negro o totalmente blanco.
-%% Sólo aplicamos la restricción en índices R,C donde R+1,C+1 sea válido.
-:- gridsize(N),
-   R < N, C < N,
+:- gridsize(N), row(R), col(C), R < N, C < N,
    color(R,C,Color),
    color(R+1,C,Color),
    color(R,C+1,Color),
@@ -33,67 +33,56 @@ color(R,C,white) :- cell(R,C,fixedWhite).
 %% -------------------------------------------------------------------
 %% 3. Definición de adyacencia ortogonal
 %% -------------------------------------------------------------------
-%% "adj(R,C,R2,C2)" será cierto si (R2,C2) es vecino ortogonal de (R,C).
-adj(R,C,R,C+1) :- gridsize(N), C < N.
-adj(R,C,R,C-1) :- gridsize(N), C > 1.
-adj(R,C,R+1,C) :- gridsize(N), R < N.
-adj(R,C,R-1,C) :- gridsize(N), R > 1.
+adj(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C+1.
+adj(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C-1.
+adj(R,C,R1,C) :- col(C), row(R), row(R1), R1 = R+1.
+adj(R,C,R1,C) :- col(C), row(R), row(R1), R1 = R-1.
 
 %% -------------------------------------------------------------------
 %% 4. Conectividad de las celdas negras
 %% -------------------------------------------------------------------
-%% 4.1. Elegimos una "celda base" (o varias) como punto de partida.
-%%     Aquí hacemos la técnica de "lexicographically first black cell".
-%%     Si hay una celda negra (R,C) y no existe otra negra (R2,C2)
-%%     que sea "menor" (fila menor, o misma fila y col menor),
-%%     entonces la marcamos como baseBlack(R,C).
+%% Se selecciona la "celda base" negra (la primera en orden lexicográfico).
 baseBlack(R,C) :-
+    row(R), col(C),
     color(R,C,black),
     not smallerBlack(R,C).
 
-smallerBlack(R,C) :-
-    color(R2,C2,black),
-    (R2 < R ; R2 == R, C2 < C).
+%% Para hacer seguras las variables R y C, incluimos row(R) y col(C) en el cuerpo.
+smallerBlack(R,C) :- row(R), col(C), color(R2,C2,black), row(R2), col(C2), R2 < R.
+smallerBlack(R,C) :- row(R), col(C), color(R2,C2,black), row(R2), col(C2), R = R2, C2 < C.
 
-%% 4.2. reachableBlack(R,C): celdas negras alcanzables desde la base.
-reachableBlack(R,C) :- baseBlack(R,C).  % la base es alcanzable por definición
-
+%% Celdas negras alcanzables desde la base.
+reachableBlack(R,C) :- baseBlack(R,C).
 reachableBlack(R,C) :-
     reachableBlack(R2,C2),
     adj(R2,C2,R,C),
-    color(R2,C2,black),
     color(R,C,black).
 
-%% 4.3. Restricción: toda celda negra debe ser reachableBlack
+%% Restricción: toda celda negra debe ser alcanzable.
 :- color(R,C,black), not reachableBlack(R,C).
 
 %% -------------------------------------------------------------------
 %% 5. Conectividad de las celdas blancas
 %% -------------------------------------------------------------------
-%% Repetimos la misma idea para las blancas.
 baseWhite(R,C) :-
+    row(R), col(C),
     color(R,C,white),
     not smallerWhite(R,C).
 
-smallerWhite(R,C) :-
-    color(R2,C2,white),
-    (R2 < R ; R2 == R, C2 < C).
+smallerWhite(R,C) :- row(R), col(C), color(R2,C2,white), row(R2), col(C2), R2 < R.
+smallerWhite(R,C) :- row(R), col(C), color(R2,C2,white), row(R2), col(C2), R = R2, C2 < C.
 
 reachableWhite(R,C) :- baseWhite(R,C).
-
 reachableWhite(R,C) :-
     reachableWhite(R2,C2),
     adj(R2,C2,R,C),
-    color(R2,C2,white),
     color(R,C,white).
 
 :- color(R,C,white), not reachableWhite(R,C).
 
 %% -------------------------------------------------------------------
-%% 6. Mostrar la solución
+%% 6. Mostrar la solución (para decode.py y display.py)
 %% -------------------------------------------------------------------
-%% Para visualizar, podemos mostrar color(R,C,black/white).
-%% O definimos un predicado auxiliar para decode.py
 _drawcircle(R,C,black) :- color(R,C,black).
 _drawcircle(R,C,white) :- color(R,C,white).
 
