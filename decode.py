@@ -13,7 +13,8 @@ def decode(kbfile, domainfile, outfile):
     cmd = ["clingo", kbfile, domainfile, "--outf=2", "--quiet=1"]
     result = subprocess.run(cmd, capture_output=True, text=True)
 
-    if result.returncode != 0:
+    # En clingo, un código de salida de 10 o 20 indica éxito (solución encontrada).
+    if result.returncode not in (10, 20):
         print("Error al ejecutar clingo:", result.stderr, file=sys.stderr)
         return
 
