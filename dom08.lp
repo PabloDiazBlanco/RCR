@@ -1,3 +1,4 @@
+#const n = 14.
 gridsize(15).
 fixed(1,0,white).
 fixed(1,6,black).

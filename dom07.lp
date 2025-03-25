@@ -1,3 +1,4 @@
+#const n = 9.
 gridsize(10).
 fixed(0,9,black).
 fixed(1,6,white).

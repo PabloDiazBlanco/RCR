@@ -1,3 +1,4 @@
+#const n = 5.
 gridsize(6).
 fixed(1,2,black).
 fixed(1,5,black).

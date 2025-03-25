@@ -1,53 +1,37 @@
-% yinyangKB.lp
+% Dominios: filas y columnas (n se define en domXX.lp generado por encode.py)
+row(0..n).
+col(0..n).
 
-% Definir los dominios de filas y columnas basándose en la dimensión.
-row(X) :- gridsize(N), X = 0..(N-1).
-col(Y) :- gridsize(N), Y = 0..(N-1).
+% Definir colores en una única línea
+color(black;white).
 
-% Si la celda es fija, se impone su color.
-color(X,Y,C) :- fixed(X,Y,C).
+% Asignación libre de color a cada celda
+1{ cell(R,C,black); cell(R,C,white) }1 :- row(R), col(C).
 
-% Para las celdas no fijas se escoge un color (exactamente uno).
-{ color(X,Y,black); color(X,Y,white) } = 1 :- row(X), col(Y), not fixed(X,Y,_).
+% Vecinos inmediatos (4-adjacent)
+nbr(R,C,R1,C) :- row(R), row(R1), col(C), R1 = R+1.
+nbr(R,C,R1,C) :- row(R), row(R1), col(C), R1 = R-1.
+nbr(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C+1.
+nbr(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C-1.
 
-% Definir la relación de adyacencia (movimientos verticales y horizontales)
-adjacent(X,Y,X1,Y) :- row(X), row(X1), col(Y), X1 = X + 1.
-adjacent(X,Y,X1,Y) :- row(X), row(X1), col(Y), X1 = X - 1.
-adjacent(X,Y,X,Y1) :- row(X), col(Y), col(Y1), Y1 = Y + 1.
-adjacent(X,Y,X,Y1) :- row(X), col(Y), col(Y1), Y1 = Y - 1.
+% neighboord: vecinos inmediatos que tienen el mismo color
+neighboord(R,C,R1,C1) :- nbr(R,C,R1,C1), cell(R,C,Color), cell(R1,C1,Color).
 
-% Conectividad para celdas negras
-% Se escoge una "raíz" negra: la de menor orden lexicográfico.
-blackRoot(X,Y) :- color(X,Y,black), not exists_black_lower(X,Y).
+% Conectividad: se define la celda "menor" (lower) para determinar la raíz (root)
+1 { root(Color,R,C) : cell(R,C,Color) } 1 :- color(Color).
 
-exists_black_lower(X,Y) :- row(X), col(Y), color(U,V,black), U < X.
-exists_black_lower(X,Y) :- row(X), col(Y), color(U,V,black), U = X, V < Y.
+% Caso base y recursivo: la raíz es alcanzable
+reachable(Color,R,C) :- root(Color,R,C).
+reachable(Color,R,C) :- reachable(Color,R1,C1), nbr(R1,C1,R,C), cell(R,C,Color).
 
-% Una celda negra es alcanzable si es la raíz o es adyacente a una ya alcanzable.
-blackReach(X,Y) :- blackRoot(X,Y).
-blackReach(X2,Y2) :- blackReach(X1,Y1), adjacent(X1,Y1,X2,Y2), color(X2,Y2,black).
+% Restricción: toda celda debe ser alcanzable desde la raíz de su color
+:- row(R), col(C), cell(R,C,Color), not reachable(Color,R,C).
 
-% Cada celda negra debe ser alcanzable.
-:- color(X,Y,black), not blackReach(X,Y).
+% Restricción: no se permiten bloques 2x2 de celdas del mismo color
+:- row(R), col(C), row(R1), col(C1), R1 = R+1, C1 = C+1,
+   cell(R,C,Color), cell(R1,C,Color), cell(R,C1,Color), cell(R1,C1,Color).
 
-% Conectividad para celdas blancas (análogo)
-whiteRoot(X,Y) :- color(X,Y,white), not exists_white_lower(X,Y).
+% Para el dibujo: cada celda genera un único círculo con su color asignado
+_drawcircle(R,C,Color) :- cell(R,C,Color).
 
-exists_white_lower(X,Y) :- row(X), col(Y), color(U,V,white), U < X.
-exists_white_lower(X,Y) :- row(X), col(Y), color(U,V,white), U = X, V < Y.
-
-whiteReach(X,Y) :- whiteRoot(X,Y).
-whiteReach(X2,Y2) :- whiteReach(X1,Y1), adjacent(X1,Y1,X2,Y2), color(X2,Y2,white).
-
-:- color(X,Y,white), not whiteReach(X,Y).
-
-% Restricción para evitar bloques 2x2 del mismo color.
-:- row(X), col(Y), row(X1), col(Y1), X1 = X + 1, Y1 = Y + 1,
-   color(X,Y,C), color(X1,Y,C), color(X,Y1,C), color(X1,Y1,C).
-
-% Generar los átomos para la salida, que serán usados por decode.py y display.py.
-_drawcircle(X,Y,C) :- color(X,Y,C).
-
-% Mostrar el tamaño de la cuadrícula y los átomos de dibujo.
-#show gridsize/1.
 #show _drawcircle/3.
