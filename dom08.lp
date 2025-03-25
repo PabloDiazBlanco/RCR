@@ -224,3 +224,4 @@ cell(15,12,free).
 cell(15,13,free).
 cell(15,14,free).
 cell(15,15,free).
+#const n = 14.
