@@ -1,6 +1,11 @@
-000010
-111111
-100101
-101100
-010100
-111100
+clingo version 5.7.1
+Reading from yinyangKB.lp ...
+Solving...
+Answer: 1
+gridsize(6) _drawcircle(1,2,black) _drawcircle(1,5,black) _drawcircle(2,2,white) _drawcircle(3,1,white) _drawcircle(3,4,white) _drawcircle(3,5,white) _drawcircle(4,3,black) _drawcircle(5,2,black) _drawcircle(0,0,black) _drawcircle(1,0,black) _drawcircle(2,0,black) _drawcircle(3,0,black) _drawcircle(4,0,black) _drawcircle(5,0,black) _drawcircle(0,1,black) _drawcircle(1,1,white) _drawcircle(2,1,white) _drawcircle(4,1,white) _drawcircle(5,1,black) _drawcircle(0,2,black) _drawcircle(3,2,black) _drawcircle(4,2,black) _drawcircle(0,3,black) _drawcircle(1,3,white) _drawcircle(2,3,white) _drawcircle(3,3,white) _drawcircle(5,3,white) _drawcircle(0,4,black) _drawcircle(1,4,white) _drawcircle(2,4,black) _drawcircle(4,4,black) _drawcircle(5,4,white) _drawcircle(0,5,black) _drawcircle(2,5,black) _drawcircle(4,5,white) _drawcircle(5,5,white)
+SATISFIABLE
+
+Models       : 1+
+Calls        : 1
+Time         : 0.000s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.016s

@@ -1,54 +1,53 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% yinyangKB.lp - Knowledge Base Mejorada para el Puzzle Yin Yang
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% yinyangKB.lp
 
-%% Dominio: Definir filas y columnas a partir de gridsize(N)
-row(R) :- gridsize(N), R = 1..N.
-col(C) :- gridsize(N), C = 1..N.
+% Definir los dominios de filas y columnas basándose en la dimensión.
+row(X) :- gridsize(N), X = 0..(N-1).
+col(Y) :- gridsize(N), Y = 0..(N-1).
 
-%% Representación de colores:
-{ color(R,C,black); color(R,C,white) } :- cell(R,C,free).
-color(R,C,black) :- cell(R,C,fixedBlack).
-color(R,C,white) :- cell(R,C,fixedWhite).
+% Si la celda es fija, se impone su color.
+color(X,Y,C) :- fixed(X,Y,C).
 
-%% Restricción: No se permiten bloques 2x2 homogéneos (para ambos colores)
-:- row(R), col(C), gridsize(N), R < N, C < N,
-   color(R,C,black), color(R,C+1,black), color(R+1,C,black), color(R+1,C+1,black).
+% Para las celdas no fijas se escoge un color (exactamente uno).
+{ color(X,Y,black); color(X,Y,white) } = 1 :- row(X), col(Y), not fixed(X,Y,_).
 
-:- row(R), col(C), gridsize(N), R < N, C < N,
-   color(R,C,white), color(R,C+1,white), color(R+1,C,white), color(R+1,C+1,white).
+% Definir la relación de adyacencia (movimientos verticales y horizontales)
+adjacent(X,Y,X1,Y) :- row(X), row(X1), col(Y), X1 = X + 1.
+adjacent(X,Y,X1,Y) :- row(X), row(X1), col(Y), X1 = X - 1.
+adjacent(X,Y,X,Y1) :- row(X), col(Y), col(Y1), Y1 = Y + 1.
+adjacent(X,Y,X,Y1) :- row(X), col(Y), col(Y1), Y1 = Y - 1.
 
-%% Conectividad de celdas negras
-%% Definir adyacencia ortogonal
-adj(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C+1.
-adj(R,C,R,C1) :- row(R), col(C), col(C1), C1 = C-1.
-adj(R,C,R1,C) :- row(R), col(C), row(R1), R1 = R+1.
-adj(R,C,R1,C) :- row(R), col(C), row(R1), R1 = R-1.
+% Conectividad para celdas negras
+% Se escoge una "raíz" negra: la de menor orden lexicográfico.
+blackRoot(X,Y) :- color(X,Y,black), not exists_black_lower(X,Y).
 
-%% Seleccionar el ancla para las celdas negras: la primera en orden lexicográfico
-anchorBlack(R,C) :- color(R,C,black), not existsBlackBefore(R,C).
-existsBlackBefore(R,C) :- color(R,C,black), row(R1), col(C1), color(R1,C1,black), R1 < R.
-existsBlackBefore(R,C) :- color(R,C,black), row(R1), col(C1), color(R1,C1,black), R1 = R, C1 < C.
+exists_black_lower(X,Y) :- row(X), col(Y), color(U,V,black), U < X.
+exists_black_lower(X,Y) :- row(X), col(Y), color(U,V,black), U = X, V < Y.
 
-%% Propagar la conectividad: toda celda negra debe ser alcanzable desde el ancla
-reachableBlack(R,C) :- anchorBlack(R,C).
-reachableBlack(R,C) :- reachableBlack(R1,C1), adj(R1,C1,R,C), color(R,C,black).
+% Una celda negra es alcanzable si es la raíz o es adyacente a una ya alcanzable.
+blackReach(X,Y) :- blackRoot(X,Y).
+blackReach(X2,Y2) :- blackReach(X1,Y1), adjacent(X1,Y1,X2,Y2), color(X2,Y2,black).
 
-:- color(R,C,black), not reachableBlack(R,C).
+% Cada celda negra debe ser alcanzable.
+:- color(X,Y,black), not blackReach(X,Y).
 
-%% Conectividad de celdas blancas
-anchorWhite(R,C) :- color(R,C,white), not existsWhiteBefore(R,C).
-existsWhiteBefore(R,C) :- color(R,C,white), row(R1), col(C1), color(R1,C1,white), R1 < R.
-existsWhiteBefore(R,C) :- color(R,C,white), row(R1), col(C1), color(R1,C1,white), R1 = R, C1 < C.
+% Conectividad para celdas blancas (análogo)
+whiteRoot(X,Y) :- color(X,Y,white), not exists_white_lower(X,Y).
 
-reachableWhite(R,C) :- anchorWhite(R,C).
-reachableWhite(R,C) :- reachableWhite(R1,C1), adj(R1,C1,R,C), color(R,C,white).
+exists_white_lower(X,Y) :- row(X), col(Y), color(U,V,white), U < X.
+exists_white_lower(X,Y) :- row(X), col(Y), color(U,V,white), U = X, V < Y.
 
-:- color(R,C,white), not reachableWhite(R,C).
+whiteReach(X,Y) :- whiteRoot(X,Y).
+whiteReach(X2,Y2) :- whiteReach(X1,Y1), adjacent(X1,Y1,X2,Y2), color(X2,Y2,white).
 
-%% Salida: Definir _drawcircle/3 para que decode.py lo use
-_drawcircle(R,C,black) :- color(R,C,black).
-_drawcircle(R,C,white) :- color(R,C,white).
+:- color(X,Y,white), not whiteReach(X,Y).
 
-#show _drawcircle/3.
+% Restricción para evitar bloques 2x2 del mismo color.
+:- row(X), col(Y), row(X1), col(Y1), X1 = X + 1, Y1 = Y + 1,
+   color(X,Y,C), color(X1,Y,C), color(X,Y1,C), color(X1,Y1,C).
+
+% Generar los átomos para la salida, que serán usados por decode.py y display.py.
+_drawcircle(X,Y,C) :- color(X,Y,C).
+
+% Mostrar el tamaño de la cuadrícula y los átomos de dibujo.
 #show gridsize/1.
+#show _drawcircle/3.
